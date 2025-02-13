@@ -2,9 +2,13 @@
 
 import React, { useState } from 'react';
 import { Send, RotateCcw } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,12 +28,12 @@ const ChatInterface = () => {
       const response = await fetch('http://192.168.1.10:8000/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           messages: [...messages, newMessage],
-          model: '/home/langchao/LLM/deepseek-r1/DeepSeek-R1-Distill-Llama-70B', // Update this with your model name
-        }),
+          model: '/home/langchao/LLM/deepseek-r1/DeepSeek-R1-Distill-Llama-70B'
+        })
       });
 
       const data = await response.json();
@@ -68,9 +72,7 @@ const ChatInterface = () => {
         {messages.map((message, index) => (
           <div
             key={index}
-            className={`mb-4 ${
-              message.role === 'user' ? 'text-right' : 'text-left'
-            }`}
+            className={`mb-4 ${message.role === 'user' ? 'text-right' : 'text-left'}`}
           >
             <div
               className={`inline-block max-w-[80%] p-4 rounded-lg ${
@@ -79,7 +81,11 @@ const ChatInterface = () => {
                   : 'bg-white border border-gray-200'
               }`}
             >
-              {message.content}
+              <ReactMarkdown
+                children={message.content}
+                remarkPlugins={[remarkMath]}
+                rehypePlugins={[rehypeKatex]}
+              />
             </div>
           </div>
         ))}
