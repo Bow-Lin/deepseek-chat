@@ -7,8 +7,24 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
+const parseResponse = (response: string) => {
+  const thinkTag = '<think>';
+  const thinkEndTag = '</think>';
+  response = `<think>${response}`;
+  if (response.startsWith(thinkTag)) {
+    const thinkEndIndex = response.indexOf(thinkEndTag);
+    if (thinkEndIndex !== -1) {
+      const thinkContent = response.slice(thinkTag.length, thinkEndIndex);
+      const actualContent = response.slice(thinkEndIndex + thinkEndTag.length);
+      return { thinkContent, actualContent };
+    }
+  }
+  
+  return { thinkContent: '', actualContent: response };
+};
+
 const ChatInterface = () => {
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: string; content: string; thinkContent?: string }[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,9 +53,12 @@ const ChatInterface = () => {
       });
 
       const data = await response.json();
+      const { thinkContent, actualContent } = parseResponse(data.choices[0].message.content);
+
       const assistantMessage = {
         role: 'assistant',
-        content: data.choices[0].message.content
+        content: actualContent,
+        thinkContent: thinkContent
       };
 
       setMessages(prev => [...prev, assistantMessage]);
@@ -74,6 +93,18 @@ const ChatInterface = () => {
             key={index}
             className={`mb-4 ${message.role === 'user' ? 'text-right' : 'text-left'}`}
           >
+            {message.role === 'assistant' && message.thinkContent && (
+              <div className="mb-2 text-left">
+                <div className="inline-block bg-gray-100 border border-gray-200 p-4 rounded-lg">
+                  <strong>Thinking:</strong>
+                  <ReactMarkdown
+                    children={message.thinkContent}
+                    remarkPlugins={[remarkMath]}
+                    rehypePlugins={[rehypeKatex]}
+                  />
+                </div>
+              </div>
+            )}
             <div
               className={`inline-block max-w-[80%] p-4 rounded-lg ${
                 message.role === 'user'
